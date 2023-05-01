@@ -1,1 +1,7 @@
-shubham
+The Quantile Transformer Scale is a data transformation technique used in machine learning to scale and transform numerical data to a uniform distribution.
+
+In this method, each feature is transformed separately by computing the cumulative distribution function (CDF) of the feature values, then applying the inverse CDF of a uniform distribution to the resulting values. This results in transformed feature values that follow a uniform distribution between 0 and 1.
+
+The quantile transformer scale can be useful in machine learning when the data is not normally distributed or when the scale of different features varies significantly. It can help to improve the performance of certain algorithms that assume normally distributed or similarly scaled data, such as linear regression and logistic regression.
+
+The transformed data retains the same shape as the original data, but the range is scaled to a common range between 0 and 1. However, the transformed data may not preserve some statistical properties of the original data, such as the mean and standard deviation.
