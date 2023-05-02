@@ -16,3 +16,13 @@ The tool uses a combination of statistical and machine learning algorithms to ex
 Once the most relevant features have been identified, the tool can automatically generate new features by combining existing ones in a meaningful way. This can lead to more accurate models and better predictions.
 
 Overall, DataRobot's Feature Discovery tool can save data scientists a significant amount of time and effort in the feature engineering process, allowing them to focus on other aspects of the data science workflow.
+
+
+
+Features aggregated by time period refer to data that has been grouped or summarized over a specific period of time, such as days, weeks, months, or years. This type of aggregation is commonly used in time series analysis, where the goal is to identify patterns and trends in data over time.
+
+For example, if you have daily sales data for a particular product, you might want to aggregate this data by month to get a better sense of how sales are trending over time. This would involve summing up the sales data for each day within a given month and presenting the total sales for that month.
+
+Aggregating data by time period can help to smooth out fluctuations and noise in the data, making it easier to identify trends and patterns. It can also make the data more manageable and easier to work with, especially when dealing with large datasets.
+
+Some common methods for aggregating data by time period include summing, averaging, counting, and finding the minimum or maximum values within each period.
