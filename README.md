@@ -8,3 +8,6 @@ Another example of EWA in feature engineering is in natural language processing.
 
 Overall, EWA is a powerful feature engineering technique that can be used to capture the trend of time-series data and create informative new features for machine learning models.
 
+Winsorizing: This technique involves replacing extreme values in the data with less extreme values. This can help reduce the impact of outliers on the data.
+
+Binning: Binning is a technique that involves grouping continuous data into discrete categories. This can help reduce the impact of outliers and skewness in the data.
