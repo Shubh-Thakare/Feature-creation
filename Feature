@@ -1,7 +1,15 @@
-The Quantile Transformer Scale is a data transformation technique used in machine learning to scale and transform numerical data to a uniform distribution.
+The QuantTrigonometric feature engineering is a technique used in data science and machine learning to create new features or variables from existing numerical data by applying trigonometric functions such as sine, cosine, and tangent.
+
+Trigonometric functions are periodic functions that repeat themselves over a regular interval. By applying these functions to numerical data, we can transform the data into a new representation that highlights the periodicity or cyclical nature of the data.
+
+For example, if we have a dataset with time series data that shows hourly temperatures throughout a day, we can use trigonometric feature engineering to create new features that capture the cyclical nature of temperature fluctuations. We can do this by applying sine and cosine functions to the hour of the day variable.
+
+The sine function will give us a value that varies between -1 and 1 and represents the amplitude of the temperature fluctuations at a specific time. The cosine function will give us a value that varies between -1 and 1 and represents the phase or position of the temperature fluctuations in the cycle.
+
+These new features can be used in machine learning models to improve their accuracy and performance, especially when the original data has a cyclical or periodic pattern. Trigonometric feature engineering can also be applied to other types of data, such as spatial data or time series data with different periodicitiesile Transformer Scale is a data transformation technique used in machine learning to scale and transform numerical data to a uniform distribution.
 
 In this method, each feature is transformed separately by computing the cumulative distribution function (CDF) of the feature values, then applying the inverse CDF of a uniform distribution to the resulting values. This results in transformed feature values that follow a uniform distribution between 0 and 1.
 
 The quantile transformer scale can be useful in machine learning when the data is not normally distributed or when the scale of different features varies significantly. It can help to improve the performance of certain algorithms that assume normally distributed or similarly scaled data, such as linear regression and logistic regression.
 
-The transformed data retains the same shape as the original data, but the range is scaled to a common range between 0 and 1. However, the transformed data may not preserve some statistical properties of the original data, such as the mean and standard deviation.
+
