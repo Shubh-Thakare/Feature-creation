@@ -34,3 +34,7 @@ Fourier features can be used in a variety of machine learning models, including 
 Normalizer scaling is a technique used in machine learning to rescale input data to a fixed range, typically between 0 and 1. It is a type of feature scaling that is useful for algorithms that are sensitive to the scale of the input features.
 
 Normalizer scaling involves dividing each feature value by the L2-norm of the feature vector. The L2-norm is the square root of the sum of the squared values of the feature vector. This ensures that each feature value is scaled by the same factor and that the resulting feature vector has a length of 1.
+
+
+
+
