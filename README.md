@@ -11,3 +11,12 @@ Overall, EWA is a powerful feature engineering technique that can be used to cap
 Winsorizing: This technique involves replacing extreme values in the data with less extreme values. This can help reduce the impact of outliers on the data.
 
 Binning: Binning is a technique that involves grouping continuous data into discrete categories. This can help reduce the impact of outliers and skewness in the data.
+
+
+The concept of "ratio beyond 1std" in feature engineering refers to the ratio of a data point's distance from the mean to the standard deviation of the data. Specifically, a data point is said to be "beyond 1std" if its distance from the mean is greater than one standard deviation.
+
+This ratio can be useful in feature engineering when dealing with data that contains outliers or extreme values. By using this ratio, we can identify which data points are significantly different from the rest of the data and may need to be treated differently or removed altogether.
+
+For example, if we have a dataset of customer purchase amounts, and we find that some customers have spent significantly more than the rest of the customers, we can use the ratio beyond 1std to identify these outliers. We can then decide whether to exclude these outliers from our analysis or create a separate feature for them.
+
+Overall, the ratio beyond 1std is a useful tool in feature engineering to help identify outliers and extreme values in a dataset.
