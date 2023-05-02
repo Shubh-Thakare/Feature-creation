@@ -10,6 +10,22 @@ These new features can be used in machine learning models to improve their accur
 
 In this method, each feature is transformed separately by computing the cumulative distribution function (CDF) of the feature values, then applying the inverse CDF of a uniform distribution to the resulting values. This results in transformed feature values that follow a uniform distribution between 0 and 1.
 
-The quantile transformer scale can be useful in machine learning when the data is not normally distributed or when the scale of different features varies significantly. It can help to improve the performance of certain algorithms that assume normally distributed or similarly scaled data, such as linear regression and logistic regression.
 
+Fourier features is a technique of feature engineering that transforms data from the input space into a high-dimensional space by mapping it onto a set of sine and cosine functions. This is achieved by applying a Fourier transform to the input data.
+
+The basic idea behind Fourier features is that any periodic function can be expressed as a sum of sine and cosine functions. By mapping the input data to this high-dimensional space of sine and cosine functions, we can capture complex patterns that may be difficult to represent using simple linear or polynomial features.
+
+To use Fourier features, we first define a set of frequencies that we want to capture. We can then apply the Fourier transform to the input data to obtain the Fourier coefficients for each frequency. These coefficients can be used as the features for the input data.
+
+For example, suppose we have a one-dimensional input space with a periodic pattern that repeats every 2π units. We could define a set of frequencies as follows:
+
+frequencies = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+We can then apply the Fourier transform to the input data to obtain the Fourier coefficients for each frequency:
+
+coefficients = [a0, a1, b1, a2, b2, a3, b3, a4, b4, a5]
+
+These coefficients can be used as features for the input data. By using a large number of frequencies, we can capture complex patterns in the input data.
+
+Fourier features can be used in a variety of machine learning models, including linear regression, logistic regression, and neural networks. They are particularly useful for tasks that involve periodic patterns, such as time series analysis and signal processing.
 
