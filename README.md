@@ -8,4 +8,11 @@ Decay function: In some cases, the recency of an item may not have a linear rela
 
 Temporal features: Temporal features, such as the day of the week or time of day that the item was interacted with, can also be useful in incorporating recency into feature engineering. For example, a user may be more likely to interact with certain types of items during specific times of the day or week.
 
-Overall, incorporating recency into feature engineering can help improve the accuracy of machine learning models by capturing the temporal dynamics of user behavior.
+
+DataRobot's Feature Discovery tool is a feature engineering tool that automatically identifies important variables or features that can be used to build more accurate predictive models. It works by analyzing the relationships between variables in a dataset to identify which variables are most strongly correlated with the target variable.
+
+The tool uses a combination of statistical and machine learning algorithms to explore the data and identify the most relevant features. It can also detect interactions between variables, such as nonlinear relationships or interactions between categorical variables, that may be missed by more traditional feature selection methods.
+
+Once the most relevant features have been identified, the tool can automatically generate new features by combining existing ones in a meaningful way. This can lead to more accurate models and better predictions.
+
+Overall, DataRobot's Feature Discovery tool can save data scientists a significant amount of time and effort in the feature engineering process, allowing them to focus on other aspects of the data science workflow.
