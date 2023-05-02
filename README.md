@@ -7,3 +7,4 @@ In the context of feature engineering, EWA is used to create new features based 
 Another example of EWA in feature engineering is in natural language processing. In this case, the EWA of the frequency of a word over a certain period of time can be used as a feature. This feature will capture the trend of the word usage over time and will be more informative than just using the raw frequency values.
 
 Overall, EWA is a powerful feature engineering technique that can be used to capture the trend of time-series data and create informative new features for machine learning models.
+
