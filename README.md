@@ -20,3 +20,15 @@ This ratio can be useful in feature engineering when dealing with data that cont
 For example, if we have a dataset of customer purchase amounts, and we find that some customers have spent significantly more than the rest of the customers, we can use the ratio beyond 1std to identify these outliers. We can then decide whether to exclude these outliers from our analysis or create a separate feature for them.
 
 Overall, the ratio beyond 1std is a useful tool in feature engineering to help identify outliers and extreme values in a dataset.
+
+
+
+Median Absolute Deviation (MAD) is a measure of dispersion that is used in statistics to quantify the variability of a dataset. In feature engineering, MAD can be used to detect outliers and to scale numerical features.
+
+To compute the MAD of a dataset, you first calculate the median of the dataset. Then, for each data point in the dataset, you calculate the absolute difference between the data point and the median. Finally, you take the median of these absolute differences. The resulting value is the MAD.
+
+MAD is a robust measure of dispersion because it is less sensitive to outliers compared to other measures of dispersion, such as the standard deviation. Therefore, it is often used in situations where the dataset contains outliers.
+
+In feature engineering, MAD can be used as a normalization technique for numerical features. Specifically, MAD can be used to scale the features so that they have a similar scale and to remove the influence of outliers on the feature scaling.
+
+To use MAD for feature scaling, you first calculate the MAD of the feature. Then, for each data point in the feature, you subtract the median of the feature and divide by the MAD. This transforms the feature so that it has a median of 0 and a standard deviation of 1, making it easier to compare with other features.
