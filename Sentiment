@@ -1,0 +1,45 @@
+
+import pandas as pd
+import nltk
+from nltk.sentiment import SentimentIntensityAnalyzer
+
+# Example preprocessing using NLTK
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+stop_words = set(stopwords.words('english'))
+
+def preprocess_text(text):
+    # Convert to lowercase
+    text = text.lower()
+    # Remove punctuation or special characters
+    text = ''.join(c for c in text if c.isalnum() or c.isspace())
+    # Remove stopwords
+    text = ' '.join(word for word in text.split() if word not in stop_words)
+    return text
+
+df['preprocessed_text'] = df['text_column'].apply(preprocess_text)
+
+
+sia = SentimentIntensityAnalyzer()
+
+def get_sentiment_score(text):
+    sentiment = sia.polarity_scores(text)
+    return sentiment['compound']
+
+df['sentiment_score'] = df['preprocessed_text'].apply(get_sentiment_score)
+
+
+def get_sentiment(sentiment_score):
+    if sentiment_score >= 0.05:
+        return 'Positive'
+    elif sentiment_score <= -0.05:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+df['sentiment'] = df['sentiment_score'].apply(get_sentiment)
+
+
+# Example: Count the number of positive, negative, and neutral sentiments
+sentiment_counts = df['sentiment'].value_counts()
+print(sentiment_counts)
