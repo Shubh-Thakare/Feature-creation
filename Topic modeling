@@ -1,0 +1,24 @@
+
+pip install transformers
+from transformers import pipeline
+model_name = "gpt2"  # or "gpt2-medium", "gpt2-large", "gpt2-xl", "gpt3"
+model = pipeline("text-generation", model=model_name, tokenizer=model_name)
+documents = [
+    "The economy is experiencing a downturn due to the recent market crash.",
+    "Climate change is a pressing issue that requires immediate attention.",
+    "The new movie has received mixed reviews from critics and audiences.",
+    # Add more documents as needed
+]
+topics = []
+for document in documents:
+    output = model(document, max_length=50, num_return_sequences=1)
+    topic_summary = output[0]['generated_text'].strip()
+    topics.append(topic_summary)
+    
+    
+for i, topic in enumerate(topics):
+    print(f"Topic {i+1}: {topic}")
+
+## Next task
+classifier = pipeline("text-classification", model="nlptown/bert-base-multilingual-uncased-sentiment")
+topics = classifier(preprocessed_text_data)
