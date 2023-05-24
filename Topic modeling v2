@@ -1,0 +1,23 @@
+pip install transformers
+
+pip install torch
+
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+import torch
+model_name = "distilbert-base-uncased"  # Replace with your desired model name
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+labels = ["label1", "label2", "label3", ...]  # Replace with your list of labels
+num_labels = len(labels)
+
+topic_modeling_pipeline = pipeline(
+    "text-classification",
+    model=model,
+    tokenizer=tokenizer,
+    num_labels=num_labels
+)
+
+
+text = "Your input text goes here"
+outputs = topic_modeling_pipeline(text)
