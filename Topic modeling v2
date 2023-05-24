@@ -58,3 +58,44 @@ topics = [predict_topic(comment) for comment in comments]
 # Output the predicted topics
 for comment, topic in zip(comments, topics):
     print(f"Comment: {comment}\nTopic: {topic}\n")
+
+
+
+
+
+from transformers import AutoTokenizer, AutoModel
+from sklearn.cluster import KMeans
+
+# Step 2: Prepare the data
+
+# Load customer comments and expected topics
+customer_comments = [...]  # Your customer comments
+expected_topics = [...]  # Your list of expected topics
+
+# Step 3: Tokenization
+tokenizer = AutoTokenizer.from_pretrained("model_name")  # Choose an appropriate tokenizer
+tokenized_comments = tokenizer.batch_encode_plus(customer_comments, padding=True, truncation=True, return_tensors="pt")
+
+# Step 4: Create input tensors
+input_ids = tokenized_comments["input_ids"]
+attention_masks = tokenized_comments["attention_mask"]
+
+# Step 5: Load a pre-trained transformer model
+model = AutoModel.from_pretrained("model_name")  # Choose an appropriate transformer model
+
+# Step 6: Encode the input
+with torch.no_grad():
+    outputs = model(input_ids=input_ids, attention_mask=attention_masks)
+
+encoded_comments = outputs.last_hidden_state
+
+# Step 7: Topic modeling
+kmeans = KMeans(n_clusters=len(expected_topics), random_state=42)
+kmeans.fit(encoded_comments.numpy())
+
+# Step 8: Assign topics
+comment_topics = kmeans.labels_
+
+# Print the assigned topics for each comment
+for comment, topic_label in zip(customer_comments, comment_topics):
+    print(f"Comment: {comment}\nTopic: {expected_topics[topic_label]}\n")
