@@ -87,6 +87,7 @@ model = AutoModel.from_pretrained("model_name")  # Choose an appropriate transfo
 with torch.no_grad():
     outputs = model(input_ids=input_ids, attention_mask=attention_masks)
 
+
 encoded_comments = outputs.last_hidden_state
 
 # Step 7: Topic modeling
@@ -99,3 +100,30 @@ comment_topics = kmeans.labels_
 # Print the assigned topics for each comment
 for comment, topic_label in zip(customer_comments, comment_topics):
     print(f"Comment: {comment}\nTopic: {expected_topics[topic_label]}\n")
+    
+    
+
+
+
+
+
+pip install transformers
+pip install numpy
+from transformers import pipeline
+import numpy as np
+classifier = pipeline("text-classification", model="nlptown/bert-base-multilingual-uncased-sentiment")
+
+comment_topics = classifier(comments)
+expected_topics = ["topic1", "topic2", "topic3"]
+predicted_topics = []
+
+for comment_topic in comment_topics:
+    predicted_label = comment_topic[0]['label']
+    predicted_score = comment_topic[0]['score']
+    
+    # Find the closest expected topic based on the predicted label
+    closest_topic = min(expected_topics, key=lambda x: abs(predicted_label - x))
+    predicted_topics.append(closest_topic)
+
+
+
