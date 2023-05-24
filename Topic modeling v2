@@ -21,3 +21,40 @@ topic_modeling_pipeline = pipeline(
 
 text = "Your input text goes here"
 outputs = topic_modeling_pipeline(text)
+
+
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import pandas as pd
+
+# Load the pre-trained model
+model_name = "bert-base-uncased"  # Example, you can choose a different model
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+# Load the topic list
+topic_list = ["Topic 1", "Topic 2", "Topic 3"]  # Example, replace with your own topics
+
+# Define the inference function
+def predict_topic(comment):
+    inputs = tokenizer.encode_plus(
+        comment,
+        add_special_tokens=True,
+        truncation=True,
+        max_length=512,  # Adjust as per your needs
+        padding="max_length",
+        return_tensors="pt"
+    )
+
+    with torch.no_grad():
+        logits = model(**inputs).logits
+
+    predicted_topic = topic_list[torch.argmax(logits)]
+    return predicted_topic
+
+# Example usage
+comments = ["Great service, very helpful!", "I'm not satisfied with the response time."]
+topics = [predict_topic(comment) for comment in comments]
+
+# Output the predicted topics
+for comment, topic in zip(comments, topics):
+    print(f"Comment: {comment}\nTopic: {topic}\n")
