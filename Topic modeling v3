@@ -172,3 +172,42 @@ for document in documents:
     output = nlp(document)
     topic = output[0]['generated_text'].strip()
     topics.append(topic)
+
+
+
+
+
+
+
+pip install transformers
+pip install torch
+pip install numpy
+pip install pandas
+from transformers import BartTokenizer, BartForConditionalGeneration
+import torch
+import pandas as pd
+import numpy as np
+
+tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
+model = BartForConditionalGeneration.from_pretrained('facebook/bart-large')
+documents = [
+    "This is the first document.",
+    "This document is the second document.",
+    "And this is the third one.",
+    "Is this the first document?"
+]
+input_ids = tokenizer.batch_encode_plus(
+    documents,
+    max_length=512,
+    padding='longest',
+    truncation=True,
+    return_tensors='pt'
+)['input_ids']
+
+outp
+uts = model.generate(input_ids)
+decoded_labels = [tokenizer.decode(output, skip_special_tokens=True) for output in outputs]
+data = {'Document': documents, 'Topic': decoded_labels}
+df = pd.DataFrame(data)
+print(df)
+
