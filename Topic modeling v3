@@ -145,3 +145,30 @@ clusters = kmeans.fit_predict(document_vectors)
 for i, cluster_id in enumerate(clusters):
     print(f"Document {i+1} belongs to cluster {cluster_id+1}")
 
+
+
+
+
+
+
+
+pip install transformers
+from transformers import pipeline
+model = "bert-base-uncased"  # Example model, you can choose from a variety of pre-trained models
+tokenizer = "bert-base-uncased"  # Example tokenizer, should match the model you choose
+
+nlp = pipeline("text2text-generation", model=model, tokenizer=tokenizer)
+documents = [
+    "Document 1 text.",
+    "Document 2 text.",
+    "Document 3 text.",
+    # Add more documents as needed
+]
+
+topics = []
+
+for document in documents:
+    # Generate a topic label for each document using the language model
+    output = nlp(document)
+    topic = output[0]['generated_text'].strip()
+    topics.append(topic)
