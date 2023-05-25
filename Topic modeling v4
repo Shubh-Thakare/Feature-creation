@@ -1,0 +1,38 @@
+import numpy as np
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+from transformers import pipeline
+
+def get_token_counts(text_data):
+    vectorizer = CountVectorizer()
+    X = vectorizer.fit_transform(text_data)
+    feature_names = vectorizer.get_feature_names()
+    return X, feature_names
+
+def apply_topic_modeling(X, num_topics):
+    lda = LatentDirichletAllocation(n_components=num_topics, random_state=42)
+    lda.fit(X)
+    return lda
+
+def extract_topics(lda, feature_names, num_words):
+    topics = []
+    for topic_idx, topic in enumerate(lda.components_):
+        topic_words = [feature_names[i] for i in topic.argsort()[:-num_words - 1:-1]]
+        topics.append(topic_words)
+    return topics
+
+def apply_topic_labeling(topics):
+    nlp = pipeline("text-classification", model="nlptown/bert-base-multilingual-uncased-sentiment")
+    labeled_topics = []
+    for topic in topics:
+        topic_label = nlp(" ".join(topic))[0]
+        labeled_topics.append((topic_label['label'], topic))
+    return labeled_topics
+
+def topic_modeling_pipeline(text_data, num_topics, num_words):
+    X, feature_names = get_token_counts(text_data)
+    lda = apply_topic_modeling(X, num_topics)
+    topics = extract_topics(lda, feature_names, num_words)
+    labeled_topics = apply_topic_labeling(topics)
+    return labeled_topics
