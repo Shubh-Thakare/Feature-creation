@@ -117,6 +117,31 @@ def topic_modeling(encoded_docs):
     num_topics = 5  # Specify the desired number of topics
     kmeans = KMeans(n_clusters=num_topics)
     kmeans.fit(embeddings)
+
+
     
     # Return the cluster labels
     return kmeans.labels_
+    
+    
+    
+    
+    
+    
+model_name = "bert-base-nli-mean-tokens"
+model = pipeline("feature-extraction", model=model_name)
+documents = [
+    "Document 1 text goes here.",
+    "Document 2 text goes here.",
+    "Document 3 text goes here.",
+    # Add more documents as needed
+]
+document_vectors = model(documents)
+from sklearn.cluster import KMeans
+
+k = 5  # Number of clusters
+kmeans = KMeans(n_clusters=k)
+clusters = kmeans.fit_predict(document_vectors)
+for i, cluster_id in enumerate(clusters):
+    print(f"Document {i+1} belongs to cluster {cluster_id+1}")
+
