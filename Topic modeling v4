@@ -36,3 +36,54 @@ def topic_modeling_pipeline(text_data, num_topics, num_words):
     topics = extract_topics(lda, feature_names, num_words)
     labeled_topics = apply_topic_labeling(topics)
     return labeled_topics
+
+
+
+
+
+import pandas as pd
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+from transformers import pipeline
+
+nltk.download('stopwords')
+nltk.download('punkt')
+
+stop_words = set(stopwords.words('english'))
+
+def preprocess_text(text):
+    # Remove punctuation and convert to lowercase
+    text = text.lower().replace('[^\w\s]', '')
+    # Tokenize the text
+    tokens = word_tokenize(text)
+    # Remove stopwords
+    tokens = [token for token in tokens if token not in stop_words]
+    return ' '.join(tokens)
+
+df['processed_text'] = df['feedback_text'].apply(preprocess_text)
+vectorizer = CountVectorizer(max_features=1000)
+X = vectorizer.fit_transform(df['processed_text'])
+n_topics = 5  # Define the number of topics to extract
+lda = LatentDirichletAllocation(n_components=n_topics, random_state=42)
+lda.fit(X)
+
+feature_names = vectorizer.get_feature_names()
+
+for topic_idx, topic in enumerate(lda.components_):
+    print(f"Topic #{topic_idx + 1}:")
+    top_words = [feature_names[i] for i in topic.argsort()[:-10 - 1:-1]]
+    print(top_words)
+
+classifier = pipeline('text-classification', model='distilbert-base-uncased', tokenizer='distilbert-base-uncased')
+
+# Example call center feedback text
+feedback_text = "I am having trouble with my internet connection."
+
+# Classify the feedback into a topic
+result = classifier(feedback_text)
+
+print(result['label'])  # Print the predicted topic label
+print(result['score'])  # Print the confidence score
