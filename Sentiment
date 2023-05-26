@@ -43,3 +43,30 @@ df['sentiment'] = df['sentiment_score'].apply(get_sentiment)
 # Example: Count the number of positive, negative, and neutral sentiments
 sentiment_counts = df['sentiment'].value_counts()
 print(sentiment_counts)
+
+
+
+
+
+import pandas as pd
+import nltk
+nltk.download('punkt')  # Download the Punkt tokenizer if not already downloaded
+from nltk.tokenize import sent_tokenize
+
+data = {'comments': ['This is the first comment. It contains multiple sentences. Second sentence is here.',
+                     'Another comment with a single sentence.',
+                     'A third comment with even more sentences. This is the third sentence.']}
+df = pd.DataFrame(data)
+
+def split_comments(df):
+    new_rows = []
+    for index, row in df.iterrows():
+        comment = row['comments']
+        sentences = sent_tokenize(comment)
+        for sentence in sentences:
+            new_row = row.copy()
+            new_row['comments'] = sentence
+            new_rows.append(new_row)
+    return pd.DataFrame(new_rows)
+
+new_df = split_comments(df)
