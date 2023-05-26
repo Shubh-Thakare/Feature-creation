@@ -87,3 +87,55 @@ result = classifier(feedback_text)
 
 print(result['label'])  # Print the predicted topic label
 print(result['score'])  # Print the confidence score
+
+
+
+
+
+
+
+pip install gensim
+pip install nltk
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from gensim import models, corpora
+
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+# Preprocessing function
+def preprocess_text(text):
+    # Tokenize the text
+    tokens = word_tokenize(text.lower())
+  
+    # Remove stopwords
+    stop_words = set(stopwords.words('english'))
+    filtered_tokens = [token for token in tokens if token not in stop_words]
+  
+    # Lemmatize the tokens
+    lemmatizer = WordNetLemmatizer()
+    lemmatized_tokens = [lemmatizer.lemmatize(token) for token in filtered_tokens]
+  
+    return lemmatized_tokens
+
+# Preprocess the data
+preprocessed_data = [preprocess_text(text) for text in call_center_feedbacks]
+
+# Create a dictionary
+dictionary = corpora.Dictionary(preprocessed_data)
+
+# Create a corpus
+corpus = [dictionary.doc2bow(doc) for doc in preprocessed_data]
+
+# Train the LDA model
+num_topics = 5
+lda_model = models.LdaModel(corpus, num_topics=num_topics, id2word=dictionary, passes=10)
+
+# Analyze the topics
+for topic_num in range(num_topics):
+    print(f"Topic #{topic_num + 1}:")
+    print(lda_model.print_topic(topic_num))
+    print()
