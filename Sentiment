@@ -70,3 +70,18 @@ def split_comments(df):
     return pd.DataFrame(new_rows)
 
 new_df = split_comments(df)
+
+
+
+
+
+import pandas as pd
+
+# Assuming your DataFrame is named 'df' and columns are 'comments' and 'sentences'
+grouped = df.groupby(df['comments'].str.count('.')).size().reset_index(name='count')
+grouped = grouped.sort_values('comments')
+
+for index, row in grouped.iterrows():
+    num_sentences = row['comments']
+    num_comments = row['count']
+    print(f"Number of comments with {num_sentences} sentence(s): {num_comments}")
