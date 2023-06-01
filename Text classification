@@ -281,3 +281,43 @@ predicted_departments = [department_names[prediction] for prediction in predicti
 print(predicted_departments)
 
 
+
+
+
+
+import ktrain
+from ktrain import text
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+# Load and preprocess the data
+X = df['comments'].values
+y = df['department'].values
+
+# Split the data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create a TextDataBunch object
+train_data = list(zip(X_train, y_train))
+val_data = list(zip(X_val, y_val))
+
+data = text.DataBunch.from_tuples(train_data, val_data=val_data, classes=sorted(set(y_train)))
+
+# Create a TextDataBunch object
+train_data = list(zip(X_train, y_train))
+val_data = list(zip(X_val, y_val))
+
+data = text.DataBunch.from_tuples(train_data, val_data=val_data, classes=sorted(set(y_train)))
+
+# Create a text classification model
+model = text.text_classifier('fasttext', data, preproc=text.preprocessor.PreProcessor(truncating='post'))
+
+# Train the model
+learner = ktrain.get_learner(model, train_data=data, val_data=data)
+learner.fit_onecycle(5e-5, 5)
+
+# Example of making predictions on new comments
+comment = "This product is amazing!"
+predictor = ktrain.get_predictor(learner.model, preproc=text.preprocessor.PreProcessor(truncating='post'))
+predicted_department = predictor.predict(comment)
+print(predicted_department)
