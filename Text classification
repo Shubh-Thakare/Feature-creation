@@ -1,0 +1,77 @@
+pip install torch
+pip install transformers
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+import torch
+
+# Load the dataframe
+df = pd.read_csv('your_dataframe.csv')
+
+# Split the data into train and test sets
+train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
+
+# Extract the comments and department columns
+train_comments = train_df['comments'].tolist()
+train_labels = train_df['department'].tolist()
+
+test_comments = test_df['comments'].tolist()
+test_labels = test_df['department'].tolist()
+
+
+model_name = "distilbert-base-uncased"  # You can use any other suitable pre-trained model
+
+# Load the tokenizer
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+# Load the model
+model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=len(df['department'].unique()))
+
+
+# Tokenize the training comments
+train_encodings = tokenizer(train_comments, truncation=True, padding=True)
+
+# Tokenize the test comments
+test_encodings = tokenizer(test_comments, truncation=True, padding=True)
+
+# Convert the labels to tensors
+train_labels = torch.tensor(train_labels)
+test_labels = torch.tensor(test_labels)
+
+
+training_args = TrainingArguments(
+    output_dir='./results',
+    num_train_epochs=3,
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=64,
+    warmup_steps=500,
+    weight_decay=0.01,
+    logging_dir='./logs',
+    logging_steps=10
+)
+
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_encodings,
+    eval_dataset=test_encodings,
+    compute_metrics=lambda preds, labels: {"accuracy": (preds.argmax(-1) == labels).float().mean()}
+)
+
+
+trainer.train()
+trainer.evaluate()
+
+
+# Example input
+new_comments = ["This is a new comment.", "Another comment for prediction."]
+
+# Tokenize the new comments
+new_comment_encodings = tokenizer(new_comments, truncation=True, padding=True)
+
+# Make predictions
+predictions = trainer.predict(new_comment_encodings)
+predicted_labels = predictions.predictions.argmax(axis=1)
+
+# Convert the predicted labels to department names
+department_names = [df['department'].unique()[label] for label in predicted_labels]
