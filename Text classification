@@ -176,3 +176,108 @@ avg_eval_loss = eval_loss / len(test_dataloader)
 classification_rep = classification_report(test_labels.tolist(), predictions)
 print(f'Average Evaluation Loss: {avg_eval_loss:.4f}')
 print(f'Classification Report:\n{classification_rep}')
+
+
+
+
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from transformers import BertTokenizer, BertForSequenceClassification, AdamW
+import torch
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+# Load data into a DataFrame
+data = pd.read_csv('data.csv')
+
+# Split data into training and testing datasets
+train_texts, test_texts, train_labels, test_labels = train_test_split(data['comment'], data['department'], test_size=0.2, random_state=42)
+# Load the BERT tokenizer
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+
+# Tokenize the training texts
+train_encodings = tokenizer(list(train_texts), truncation=True, padding=True)
+
+# Tokenize the testing texts
+test_encodings = tokenizer(list(test_texts), truncation=True, padding=True)
+
+# Convert the tokenized inputs and labels into PyTorch tensors
+train_dataset = TensorDataset(torch.tensor(train_encodings['input_ids']),
+                              torch.tensor(train_encodings['attention_mask']),
+                              torch.tensor(train_labels))
+
+test_dataset = TensorDataset(torch.tensor(test_encodings['input_ids']),
+                             torch.tensor(test_encodings['attention_mask']),
+                             torch.tensor(test_labels))
+
+# Set the batch size and create the data loaders
+batch_size = 16
+
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+# Load the pretrained BERT model
+model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=num_labels)
+
+# Set the optimizer and learning rate
+optimizer = AdamW(model.parameters(), lr=1e-5)
+
+# Set the number of training epochs
+num_epochs = 5
+
+# Fine-tune the model
+for epoch in range(num_epochs):
+    model.train()
+    for batch in train_loader:
+        optimizer.zero_grad()
+        inputs = {'input_ids': batch[0],
+                  'attention_mask': batch[1],
+                  'labels': batch[2]}
+        outputs = model(**inputs)
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+
+model.eval()
+predictions = []
+for batch in test_loader:
+    with torch.no_grad():
+        inputs = {'input_ids': batch[0],
+                  'attention_mask': batch[1],
+                  'labels': batch[2]}
+        outputs = model(**inputs)
+        logits = outputs.logits
+        predictions.extend(torch.argmax(logits, dim=1).tolist())
+
+# Calculate accuracy
+correct = sum(predictions[i] == test_labels[i] for i in range(len(predictions)))
+accuracy = correct / len(predictions)
+print(f"Accuracy: {accuracy}")
+
+# Tokenize new comments
+new_comments = ['New comment 1', 'New comment 2', ...]
+new_encodings = tokenizer(list(new_comments), truncation=True, padding=True)
+
+# Create a dataset for new comments
+new_dataset = TensorDataset(torch.tensor(new_encodings['input_ids']),
+                            torch.tensor(new_encodings['attention_mask']))
+
+# Create a data loader for new comments
+new_loader = DataLoader(new_dataset, batch_size=batch_size, shuffle=False)
+
+# Make predictions for new comments
+model.eval()
+predictions = []
+for batch in new_loader:
+    with torch.no_grad():
+        inputs = {'input_ids': batch[0],
+                  'attention_mask': batch[1]}
+        outputs = model(**inputs)
+        logits = outputs.logits
+        predictions.extend(torch.argmax(logits, dim=1).tolist())
+
+# Map predicted labels to department names
+predicted_departments = [department_names[prediction] for prediction in predictions]
+print(predicted_departments)
+
+
