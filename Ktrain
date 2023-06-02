@@ -1,0 +1,21 @@
+# Split the data into train and test sets
+train_size = int(0.8 * len(df))  # 80% for training, 20% for testing
+
+train_data = df[:train_size]
+test_data = df[train_size:]
+# Preprocess the text data
+(x_train, y_train), (x_test, y_test), preproc = text.texts_from_df(train_data=train_data,
+                                                                   text_column='comments',
+                                                                   label_columns='department',
+                                                                   val_df=test_data,
+                                                                   maxlen=512)
+
+# Create a text classification model
+model = text.text_classifier(name='bert', train_data=(x_train, y_train), preproc=preproc)
+# Train the model
+learner = ktrain.get_learner(model, train_data=(x_train, y_train), val_data=(x_test, y_test), batch_size=6)
+learner.fit_onecycle(lr=2e-5, epochs=3)
+# Make predictions on new comments
+new_comments = ["New comment 1", "New comment 2", ...]  # List of new comments
+predictor = ktrain.get_predictor(learner.model, preproc)
+predictions = predictor.predict(new_comments)
