@@ -321,3 +321,35 @@ comment = "This product is amazing!"
 predictor = ktrain.get_predictor(learner.model, preproc=text.preprocessor.PreProcessor(truncating='post'))
 predicted_department = predictor.predict(comment)
 print(predicted_department)
+
+
+
+
+
+
+data = pd.read_csv('your_data.csv')  # Replace 'your_data.csv' with the actual filename
+
+# Preprocess the text data
+(x_train, y_train), (x_test, y_test), preproc = text.texts_from_df(data_frame=data,
+                                                                   text_column='comment',
+                                                                   label_columns='department',
+                                                                   val_df=None,
+                                                                   maxlen=512,
+                                                                   preprocess_mode='bert')
+model = text.text_classifier('bert', train_data=(x_train, y_train), preproc=preproc)
+learner = ktrain.get_learner(model, train_data=(x_train, y_train), val_data=(x_test, y_test), batch_size=6)
+
+learner.fit_onecycle(2e-5, 5)  # Fine-tune the BERT model
+
+# Save the model
+model_path = 'path_to_save_model'
+learner.save_model(model_path)
+
+predictor = ktrain.get_predictor(learner.model, preproc)
+
+# Make predictions on new comments
+new_comments = ['New comment 1', 'New comment 2', 'New comment 3']
+predicted_departments = predictor.predict(new_comments)
+
+print(predicted_departments)
+
