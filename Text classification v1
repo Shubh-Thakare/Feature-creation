@@ -1,0 +1,116 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from transformers import BertTokenizer, BertForSequenceClassification, AdamW
+import torch
+
+# Assuming your data is stored in a DataFrame called `df`
+# Split the data into training and validation sets
+train_df, val_df = train_test_split(df, test_size=0.2, random_state=42)
+
+# Get the comments and topics from the DataFrame
+train_comments = train_df['comments'].tolist()
+train_topics = train_df['topics'].tolist()
+val_comments = val_df['comments'].tolist()
+val_topics = val_df['topics'].tolist()
+
+# Load the BERT tokenizer
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+
+# Tokenize the training and validation comments
+train_encodings = tokenizer(train_comments, truncation=True, padding=True)
+val_encodings = tokenizer(val_comments, truncation=True, padding=True)
+
+# Create PyTorch datasets
+train_dataset = torch.utils.data.TensorDataset(
+    torch.tensor(train_encodings['input_ids']),
+    torch.tensor(train_encodings['attention_mask']),
+    torch.tensor(train_topics)
+)
+val_dataset = torch.utils.data.TensorDataset(
+    torch.tensor(val_encodings['input_ids']),
+    torch.tensor(val_encodings['attention_mask']),
+    torch.tensor(val_topics)
+)
+
+
+# Load the pre-trained BERT model with a sequence classification head
+model = BertForSequenceClassification.from_pretrained(
+    'bert-base-uncased',
+    num_labels=num_topics,  # Set the number of output classes
+    output_attentions=False,
+    output_hidden_states=False
+)
+
+# Define the optimizer and the learning rate
+optimizer = AdamW(model.parameters(), lr=1e-5)
+
+# Create a data loader for training and validation
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True)
+val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=16)
+
+# Set the device to GPU if available
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.to(device)
+
+# Training loop
+for epoch in range(10):
+    model.train()
+    for batch in train_loader:
+        inputs = {
+            'input_ids': batch[0].to(device),
+            'attention_mask': batch[1].to(device),
+            'labels': batch[2].to(device)
+        }
+        optimizer.zero_grad()
+        outputs = model(**inputs)
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+
+    # Validation
+    model.eval()
+    with torch.no_grad():
+        for batch in val_loader:
+            inputs = {
+                'input_ids': batch[0].to(device),
+                'attention_mask': batch[1].to(device),
+                'labels': batch[2].to(device)
+            }
+            outputs = model(**inputs)
+            # Perform evaluation or calculate metrics on validation set
+
+# Save the model
+model.save_pretrained('text_classification_model')
+
+
+# Load the saved model
+model = BertForSequenceClassification.from_pretrained('text_classification_model')
+model.to(device)
+
+# Tokenize new comments
+new_comments = ['New comment 1', 'New comment 2', ...]
+new_encodings = tokenizer(new_comments, truncation=True, padding=True)
+
+# Create a data loader for new comments
+new_dataset = torch.utils.data.TensorDataset(
+    torch.tensor(new_encodings['input_ids']),
+    torch.tensor(new_encodings['attention_mask'])
+)
+new_loader = torch.utils.data.DataLoader(new_dataset, batch_size=16)
+
+# Make predictions on new comments
+model.eval()
+predictions = []
+with torch.no_grad():
+    for batch in new_loader:
+        inputs = {
+            'input_ids': batch[0].to(device),
+            'attention_mask': batch[1].to(device),
+        }
+        outputs = model(**inputs)
+        logits = outputs.logits
+        predicted_labels = torch.argmax(logits, dim=1).tolist()
+        predictions.extend(predicted_labels)
+
+# Convert predicted labels to their corresponding topics
+predicted_topics = [topic_list[label] for label in predictions]
