@@ -19,3 +19,26 @@ learner.fit_onecycle(lr=2e-5, epochs=3)
 new_comments = ["New comment 1", "New comment 2", ...]  # List of new comments
 predictor = ktrain.get_predictor(learner.model, preproc)
 predictions = predictor.predict(new_comments)
+
+
+
+
+
+from sklearn.model_selection import train_test_split
+
+X = df['comments'].values
+y = df['department'].values
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+MODEL_NAME = 'bert-base-uncased'
+t = text.Transformer(MODEL_NAME, maxlen=500)
+
+train_data = t.preprocess_train(X_train, y_train)
+test_data = t.preprocess_test(X_test, y_test)
+model = t.get_classifier()
+learner = ktrain.get_learner(model, train_data=train_data, val_data=test_data, batch_size=6)
+
+learner.fit_onecycle(lr=2e-5, epochs=1)
+# Assuming your new comments are stored in a list named 'new_comments'
+predictor = ktrain.get_predictor(learner.model, preproc=t)
+predictions = predictor.predict(new_comments)
