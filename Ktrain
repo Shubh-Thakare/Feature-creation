@@ -42,3 +42,14 @@ learner.fit_onecycle(lr=2e-5, epochs=1)
 # Assuming your new comments are stored in a list named 'new_comments'
 predictor = ktrain.get_predictor(learner.model, preproc=t)
 predictions = predictor.predict(new_comments)
+
+
+
+
+
+(x_train, y_train), (x_test, y_test), preproc = text.texts_from_df(train_df=df_train,
+                                                                   text_column='comments',
+                                                                   label_columns='topic',
+                                                                   val_df=df_test,
+                                                                   maxlen=512,
+                                                                   preprocess_mode='bert')
