@@ -53,3 +53,29 @@ predictions = predictor.predict(new_comments)
                                                                    val_df=df_test,
                                                                    maxlen=512,
                                                                    preprocess_mode='bert')
+
+
+
+
+
+
+train_size = 0.8  # 80% for training, 20% for validation
+train_data = df.sample(frac=train_size, random_state=42)
+val_data = df.drop(train_data.index)
+MODEL_NAME = 'distilbert-base-uncased'  # Choose the desired transformer model
+
+t = text.Transformer(MODEL_NAME, maxlen=500, class_names=df['topic'].unique())
+
+train_preprocessed = t.preprocess_train(train_data['comment'].values, train_data['topic'].values)
+val_preprocessed = t.preprocess_test(val_data['comment'].values, val_data['topic'].values)
+
+model = t.text_classifier('fasttext', train_data=train_preprocessed)
+
+learner = ktrain.get_learner(model, train_data=train_preprocessed, val_data=val_preprocessed, batch_size=6)
+learner.fit_onecycle(5e-5, 4)
+
+model_path = 'path_to_save_model'
+learner.model.save(model_path)
+loaded_model = ktrain.load_predictor(model_path)
+new_comments = ['New comment 1', 'New comment 2', 'New comment 3']
+predictions = loaded_model.predict(new_comments)
