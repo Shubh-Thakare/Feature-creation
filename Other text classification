@@ -31,3 +31,52 @@ print(classification_report(y_test, y_pred))
 
 
 
+import pandas as pd
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from transformers import TFAutoModelForSequenceClassification, AutoTokenizer
+# Load data into a DataFrame
+data = pd.read_csv('your_data_file.csv')
+
+# Split the data into training and testing sets
+train_data, test_data = train_test_split(data, test_size=0.2, random_state=42)
+# Load the tokenizer
+tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
+
+# Tokenize the training and testing data
+train_encodings = tokenizer(list(train_data['comment']), truncation=True, padding=True)
+test_encodings = tokenizer(list(test_data['comment']), truncation=True, padding=True)
+# Create a label mapping dictionary
+label_mapping = {label: idx for idx, label in enumerate(train_data['department'].unique())}
+
+# Encode the labels
+train_labels = [label_mapping[label] for label in train_data['department']]
+test_labels = [label_mapping[label] for label in test_data['department']]
+
+train_dataset = tf.data.Dataset.from_tensor_slices((dict(train_encodings), train_labels))
+test_dataset = tf.data.Dataset.from_tensor_slices((dict(test_encodings), test_labels))
+
+# Load the pre-trained model
+model = TFAutoModelForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=len(label_mapping))
+
+# Compile the model
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+
+# Train the model
+model.fit(train_dataset.shuffle(1000).batch(16), epochs=3, batch_size=16)
+
+results = model.evaluate(test_dataset.batch(16))
+print(f"Test loss: {results[0]}, Test accuracy: {results[1]}")
+
+# Tokenize the new comment
+new_comment = "This is a new comment."
+new_encodings = tokenizer([new_comment], truncation=True, padding=True)
+
+# Make predictions
+predictions = model.predict(dict(new_encodings))
+
+# Decode the predicted label
+predicted_label = list(label_mapping.keys())[tf.argmax(predictions.logits, axis=1).numpy()[0]]
+print(f"Predicted department: {predicted_label}")
