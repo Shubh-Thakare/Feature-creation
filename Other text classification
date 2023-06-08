@@ -1,0 +1,33 @@
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import train_test_split
+
+# Step 1: Preprocessing the Text Data
+
+# Assume 'X' is a list of preprocessed text documents
+# Assume 'y' is a list of corresponding labels
+
+# Step 2: Feature Extraction
+
+vectorizer = CountVectorizer()  # You can replace CountVectorizer with TF-IDF or other feature extraction methods
+X = vectorizer.fit_transform(X)
+
+# Step 3: Building the Random Forest Model
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+rf_classifier = RandomForestClassifier(n_estimators=100, max_depth=10)
+rf_classifier.fit(X_train, y_train)
+
+# Step 4: Evaluating the Model
+
+y_pred = rf_classifier.predict(X_test)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+
+
+
+
