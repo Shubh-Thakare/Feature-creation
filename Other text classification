@@ -203,3 +203,84 @@ def predict_department(comment):
     predicted_label = torch.argmax(outputs.logits).item()
     return predicted_label
   
+
+
+
+
+
+
+
+import pandas as pd
+import torch
+from sklearn.model_selection import train_test_split
+from transformers import BertTokenizer, BertForSequenceClassification, AdamW
+train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
+train_comments = train_df['comment'].tolist()
+train_labels = train_df['department_label'].tolist()
+test_comments = test_df['comment'].tolist()
+test_labels = test_df['department_label'].tolist()
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+
+train_encodings = tokenizer(train_comments, truncation=True, padding=True)
+test_encodings = tokenizer(test_comments, truncation=True, padding=True)
+
+train_labels = torch.tensor(train_labels)
+test_labels = torch.tensor(test_labels)
+
+class CommentDataset(torch.utils.data.Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
+        self.labels = labels
+
+    def __getitem__(self, idx):
+        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
+        item['labels'] = torch.tensor(self.labels[idx])
+        return item
+
+    def __len__(self):
+        return len(self.labels)
+
+train_dataset = CommentDataset(train_encodings, train_labels)
+test_dataset = CommentDataset(test_encodings, test_labels)
+
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=16, shuffle=False)
+
+model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=50)
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+model.to(device)
+
+optimizer = AdamW(model.parameters(), lr=1e-5)
+
+for epoch in range(3):  # Adjust the number of epochs as needed
+    model.train()
+    for batch in train_loader:
+        optimizer.zero_grad()
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        labels = batch['labels'].to(device)
+        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+
+model.eval()
+
+def predict_department(comment):
+    inputs = tokenizer.encode_plus(
+        comment,
+        add_special_tokens=True,
+        max_length=512,
+        padding='max_length',
+        truncation=True,
+        return_tensors='pt'
+    )
+    inputs = inputs.to(device)
+    outputs = model(**inputs)
+    predicted_label = torch.argmax(outputs.logits, dim=1).item()
+    return predicted_label
+
+new_comment = "This is a new comment. Please predict the department."
+predicted_department = predict_department(new_comment)
+print(predicted_department)
