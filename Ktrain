@@ -79,3 +79,25 @@ learner.model.save(model_path)
 loaded_model = ktrain.load_predictor(model_path)
 new_comments = ['New comment 1', 'New comment 2', 'New comment 3']
 predictions = loaded_model.predict(new_comments)
+
+
+
+
+
+X_train = df['comment'].tolist()
+y_train = df['department'].tolist()
+model_name = 'bert-base-uncased'
+t = text.Transformer(model_name, maxlen=500, classes=list(set(y_train)))
+train_data = t.preprocess_train(X_train, y_train)
+model = t.get_classifier()
+learner = ktrain.get_learner(model, train_data=train_data)
+learner.fit_onecycle(5e-5, 4)
+
+predictor = ktrain.get_predictor(learner.model, preproc=t)
+predictor.save('text_classifier')
+
+predictor = ktrain.load_predictor('text_classifier')
+new_comment = "This is a new customer comment."
+predicted_department = predictor.predict(new_comment)
+print(predicted_department)
+
