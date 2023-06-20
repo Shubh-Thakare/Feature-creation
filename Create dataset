@@ -1,0 +1,19 @@
+import random
+from faker import Faker
+import pandas as pd
+
+fake = Faker()
+
+data = []
+
+for _ in range(10000):
+    first_name = fake.first_name()
+    last_name = fake.last_name()
+    customer_id = fake.random_number(digits=6)
+    address = fake.address().replace("\n", ", ")
+
+    data.append([first_name, last_name, customer_id, address])
+
+df = pd.DataFrame(data, columns=["First Name", "Last Name", "Customer ID", "Address"])
+
+df.to_csv("customer_dataset.csv", index=False)
