@@ -114,3 +114,51 @@ with torch.no_grad():
 
 # Convert predicted labels to their corresponding topics
 predicted_topics = [topic_list[label] for label in predictions]
+
+
+
+## Learning rate and epoc tunning
+def find_learning_rate(model, tokenizer, train_dataloader, max_lr, num_epochs):
+    optimizer = AdamW(model.parameters(), lr=max_lr)
+
+    num_training_steps = len(train_dataloader) * num_epochs
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=0,
+        num_training_steps=num_training_steps
+    )
+
+    model.train()
+
+    learning_rates = []
+    losses = []
+    best_loss = float('inf')
+
+    for epoch in range(num_epochs):
+        for batch in train_dataloader:
+            optimizer.zero_grad()
+
+            input_ids = batch['input_ids']
+            attention_mask = batch['attention_mask']
+            labels = batch['labels']
+
+            outputs = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels
+            )
+
+            loss = outputs.loss
+            loss.backward()
+
+            optimizer.step()
+            scheduler.step()
+
+            learning_rate = scheduler.get_last_lr()[0]
+            learning_rates.append(learning_rate)
+            losses.append(loss.item())
+
+            if loss < best_loss:
+                best_loss = loss
+
+    return learning_rates, losses
