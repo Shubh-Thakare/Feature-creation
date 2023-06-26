@@ -162,3 +162,62 @@ def find_learning_rate(model, tokenizer, train_dataloader, max_lr, num_epochs):
                 best_loss = loss
 
     return learning_rates, losses
+
+
+
+
+
+
+
+
+
+## epoc and learning rate tuning
+best_accuracy = 0.0
+best_learning_rate = None
+best_epochs = None
+
+for learning_rate in learning_rates:
+    for num_epochs in epochs:
+        optimizer = AdamW(model.parameters(), lr=learning_rate)
+        total_steps = len(train_loader) * num_epochs
+        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
+        
+        for epoch in range(num_epochs):
+            # Training loop
+            model.train()
+            for batch in train_loader:
+                optimizer.zero_grad()
+                inputs = {key: value.to(device) for key, value in batch.items() if key != 'labels'}
+                labels = batch['labels'].to(device)
+                
+                outputs = model(**inputs, labels=labels)
+                loss = outputs.loss
+                loss.backward()
+                optimizer.step()
+                scheduler.step()
+            
+            # Validation loop
+            model.eval()
+            total_val_loss = 0
+            total_val_correct = 0
+            with torch.no_grad():
+                for batch in val_loader:
+                    inputs = {key: value.to(device) for key, value in batch.items() if key != 'labels'}
+                    labels = batch['labels'].to(device)
+                    
+                    outputs = model(**inputs, labels=labels)
+                    loss = outputs.loss
+                    logits = outputs.logits
+                    
+                    total_val_loss += loss.item()
+                    preds = torch.argmax(logits, dim=1)
+                    total_val_correct += torch.sum(preds == labels).item()
+            
+            val_loss = total_val_loss / len(val_loader)
+            val_accuracy = total_val_correct / len(val_dataset)
+            
+            if val_accuracy > best_accuracy:
+                best_accuracy = val_accuracy
+                best_learning_rate = learning_rate
+                best_epochs = num_epochs
+
