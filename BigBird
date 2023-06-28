@@ -1,0 +1,49 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from transformers import BigBirdTokenizer, TFBigBirdForSequenceClassification
+import tensorflow as tf
+
+# Load the data into a Pandas DataFrame
+df = pd.read_csv('data.csv')  # Replace 'data.csv' with your actual data file
+
+# Split the data into training and testing sets
+train_texts, test_texts, train_labels, test_labels = train_test_split(df['comment'], df['department'], test_size=0.2, random_state=42)
+
+tokenizer = BigBirdTokenizer.from_pretrained('google/bigbird-roberta-base')
+
+train_encodings = tokenizer(train_texts.tolist(), truncation=True, padding=True)
+test_encodings = tokenizer(test_texts.tolist(), truncation=True, padding=True)
+
+train_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(train_encodings),
+    train_labels.tolist()
+))
+test_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(test_encodings),
+    test_labels.tolist()
+))
+
+model = TFBigBirdForSequenceClassification.from_pretrained('google/bigbird-roberta-base', num_labels=len(df['department'].unique()))
+optimizer = tf.keras.optimizers.Adam(learning_rate=5e-5)
+loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+metric = tf.keras.metrics.SparseCategoricalAccuracy('accuracy')
+model.compile(optimizer=optimizer, loss=loss, metrics=[metric])
+
+model.fit(train_dataset.shuffle(1000).batch(16), epochs=3, batch_size=16)
+
+_, test_acc = model.evaluate(test_dataset.batch(16))
+print('Test accuracy:', test_acc)
+
+def predict_department(comment):
+    input_ids = tokenizer.encode(comment, truncation=True, padding=True, max_length=512, return_tensors='tf')
+    logits = model.predict(input_ids)[0]
+    predicted_class = np.argmax(logits)
+    predicted_label = df['department'].unique()[predicted_class]
+    return predicted_label
+
+# Example usage:
+new_comment = "This is a new comment."
+predicted_department = predict_department(new_comment)
+print('Predicted department:', predicted_department)
