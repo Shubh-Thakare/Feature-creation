@@ -47,3 +47,76 @@ def predict_department(comment):
 new_comment = "This is a new comment."
 predicted_department = predict_department(new_comment)
 print('Predicted department:', predicted_department)
+
+
+
+
+
+
+
+pip install tensorflow tensorflow-text transformers
+import tensorflow as tf
+import tensorflow_text as text
+from transformers import BigBirdTokenizer, TFBigBirdForSequenceClassification
+tokenizer = BigBirdTokenizer.from_pretrained('google/bigbird-roberta-base')
+def prepare_input_data(texts, labels):
+    input_ids = []
+    attention_masks = []
+
+    for text in texts:
+        encoded_text = tokenizer.encode_plus(
+            text,
+            add_special_tokens=True,
+            max_length=128,
+            pad_to_max_length=True,
+            truncation=True,
+            return_attention_mask=True
+        )
+        input_ids.append(encoded_text['input_ids'])
+        attention_masks.append(encoded_text['attention_mask'])
+
+    return np.array(input_ids), np.array(attention_masks), np.array(labels)
+
+def build_model():
+    input_ids = tf.keras.Input(shape=(128,), dtype=tf.int32)
+    attention_mask = tf.keras.Input(shape=(128,), dtype=tf.int32)
+    model = TFBigBirdForSequenceClassification.from_pretrained('google/bigbird-roberta-base')
+    logits = model(input_ids, attention_mask=attention_mask)[0]
+    outputs = tf.keras.layers.Dense(num_classes, activation='softmax')(logits)
+
+    model = tf.keras.Model(inputs=[input_ids, attention_mask], outputs=outputs)
+    return model
+
+# Define model hyperparameters
+num_classes = len(df['department_label'].unique())
+learning_rate = 1e-5
+epsilon = 1e-08
+epochs = 5
+batch_size = 32
+
+# Build and compile the model
+model = build_model()
+optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, epsilon=epsilon)
+model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# Prepare input data
+train_texts, train_labels = df_train['comment'].values, df_train['department_label'].values
+train_input_ids, train_attention_masks, train_labels = prepare_input_data(train_texts, train_labels)
+
+# Train the model
+model.fit(
+    [train_input_ids, train_attention_masks],
+    train_labels,
+    epochs=epochs,
+    batch_size=batch_size,
+    validation_split=0.2
+)
+
+def predict_department(comment):
+    input_ids, attention_mask, _ = prepare_input_data([comment], [0])
+    prediction = model.predict([input_ids, attention_mask])[0]
+    predicted_label = np.argmax(prediction)
+    return predicted_label
+
+new_comment = "This is a new comment. What department does it belong to?"
+predicted_department = predict_department(new_comment)
