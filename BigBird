@@ -120,3 +120,139 @@ def predict_department(comment):
 
 new_comment = "This is a new comment. What department does it belong to?"
 predicted_department = predict_department(new_comment)
+
+
+
+
+
+
+
+
+import torch
+from torch.utils.data import Dataset, DataLoader
+from transformers import BigBirdForSequenceClassification, BigBirdTokenizer
+class CommentDataset(Dataset):
+    def __init__(self, comments, labels, tokenizer, max_length):
+        self.comments = comments
+        self.labels = labels
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.comments)
+
+    def __getitem__(self, idx):
+        comment = str(self.comments[idx])
+        label = self.labels[idx]
+
+        encoding = self.tokenizer.encode_plus(
+            comment,
+            add_special_tokens=True,
+            max_length=self.max_length,
+            padding='max_length',
+            truncation=True,
+            return_tensors='pt'
+        )
+
+        input_ids = encoding['input_ids'].squeeze()
+        attention_mask = encoding['attention_mask'].squeeze()
+
+        return {
+            'input_ids': input_ids,
+            'attention_mask': attention_mask,
+            'label': torch.tensor(label, dtype=torch.long)
+        }
+
+
+model_name = 'google/bigbird-base-uncased'
+model = BigBirdForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
+tokenizer = BigBirdTokenizer.from_pretrained(model_name)
+
+train_dataset = CommentDataset(train_comments, train_labels, tokenizer, max_length)
+test_dataset = CommentDataset(test_comments, test_labels, tokenizer, max_length)
+
+batch_size = 16
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=batch_size)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+model.to(device)
+optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
+
+epochs = 5
+for epoch in range(epochs):
+    model.train()
+    total_loss = 0
+
+    for batch in train_loader:
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        labels = batch['label'].to(device)
+
+        optimizer.zero_grad()
+
+        outputs = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            labels=labels
+        )
+
+        loss = outputs.loss
+        total_loss += loss.item()
+
+        loss.backward()
+        optimizer.step()
+
+    average_loss = total_loss / len(train_loader)
+    print(f'Epoch {epoch + 1}/{epochs} - Loss: {average_loss:.4f}')
+
+model.eval()
+correct = 0
+total = 0
+
+with torch.no_grad():
+    for batch in test_loader:
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        labels = batch['label'].to(device)
+
+        outputs = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask
+        )
+
+        _, predicted = torch.max(outputs.logits, dim=1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+accuracy = 100 * correct / total
+print(f'Test Accuracy: {accuracy:.2f}%')
+
+def predict_department(comment):
+    encoding = tokenizer.encode_plus(
+        comment,
+        add_special_tokens=True,
+        max_length=max_length,
+        padding='max_length',
+        truncation=True,
+        return_tensors='pt'
+    )
+
+    input_ids = encoding['input_ids'].to(device)
+    attention_mask = encoding['attention_mask'].to(device)
+
+    with torch.no_grad():
+        outputs = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask
+        )
+
+    _, predicted = torch.max(outputs.logits, dim=1)
+
+    return predicted.item()
+
+new_comment = "This is a new comment."
+predicted_department = predict_department(new_comment)
+print(f'Predicted Department: {predicted_department}')
+
