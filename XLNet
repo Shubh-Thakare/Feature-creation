@@ -1,0 +1,123 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from transformers import XLNetTokenizer, XLNetForSequenceClassification, AdamW
+import torch
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+
+# Load the data
+df = pd.read_csv('data.csv')
+
+# Split the data into training and testing sets
+train_comments, test_comments, train_labels, test_labels = train_test_split(df['comment'], df['department_label'], test_size=0.2, random_state=42)
+
+# Load the XLNet tokenizer
+tokenizer = XLNetTokenizer.from_pretrained('xlnet-base-cased', do_lower_case=True)
+
+# Tokenize the comments
+train_encodings = tokenizer(list(train_comments), truncation=True, padding=True)
+test_encodings = tokenizer(list(test_comments), truncation=True, padding=True)
+
+# Create PyTorch datasets
+train_dataset = TensorDataset(torch.tensor(train_encodings['input_ids']),
+                              torch.tensor(train_encodings['attention_mask']),
+                              torch.tensor(train_labels))
+
+test_dataset = TensorDataset(torch.tensor(test_encodings['input_ids']),
+                             torch.tensor(test_encodings['attention_mask']),
+                             torch.tensor(test_labels))
+
+# Create data loaders
+batch_size = 16
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+# Initialize the XLNet model for sequence classification
+model = XLNetForSequenceClassification.from_pretrained('xlnet-base-cased', num_labels=num_classes)
+
+# Set the device to GPU if available, otherwise use CPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.to(device)
+
+# Set up the optimizer
+optimizer = AdamW(model.parameters(), lr=2e-5)
+
+# Set the model to training mode
+model.train()
+
+# Training loop
+epochs = 3
+for epoch in range(epochs):
+    for batch in train_loader:
+        # Unpack the batch
+        input_ids, attention_mask, labels = batch
+        input_ids = input_ids.to(device)
+        attention_mask = attention_mask.to(device)
+        labels = labels.to(device)
+
+        # Zero the gradients
+        optimizer.zero_grad()
+
+        # Forward pass
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+
+        # Compute loss and perform backpropagation
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+
+# Set the model to evaluation mode
+model.eval()
+
+# Initialize empty lists to store predictions and true labels
+predictions = []
+true_labels = []
+
+# Evaluation loop
+for batch in test_loader:
+    # Unpack the batch
+    input_ids, attention_mask, labels = batch
+    input_ids = input_ids.to(device)
+    attention_mask = attention_mask.to(device)
+    labels = labels.to(device)
+
+    # Disable gradient calculation
+    with torch.no_grad():
+        # Forward pass
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+
+    # Get the predicted labels
+    logits = outputs.logits
+    _, predicted_labels = torch.max(logits, 1)
+
+    # Append the predictions and true labels to the lists
+    predictions.extend(predicted_labels.tolist())
+    true_labels.extend(labels.tolist())
+
+# Print the classification report
+target_names = ['department1', 'department2', 'department3']  # Replace with your department labels
+print(classification_report(true_labels, predictions, target_names=target_names))
+
+# Tokenize the new comment
+new_comment = "This is a new comment."
+new_comment_encoding = tokenizer.encode_plus(new_comment, truncation=True, padding=True, return_tensors='pt')
+
+# Move the input to the device
+input_ids = new_comment_encoding['input_ids'].to(device)
+attention_mask = new_comment_encoding['attention_mask'].to(device)
+
+# Disable gradient calculation
+with torch.no_grad():
+    # Forward pass
+    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+
+# Get the predicted label
+logits = outputs.logits
+_, predicted_label = torch.max(logits, 1)
+
+# Convert the predicted label to the department name
+department_names = ['department1', 'department2', 'department3']  # Replace with your department labels
+predicted_department = department_names[predicted_label.item()]
+
+# Print the predicted department
+print("Predicted department:", predicted_department)
