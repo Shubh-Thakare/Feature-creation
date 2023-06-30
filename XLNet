@@ -121,3 +121,104 @@ predicted_department = department_names[predicted_label.item()]
 
 # Print the predicted department
 print("Predicted department:", predicted_department)
+
+
+
+
+
+
+
+
+
+
+
+!pip install tensorflow
+!pip install transformers
+
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from transformers import XLNetTokenizer, TFXLNetForSequenceClassification
+# Load the dataframe
+df = pd.read_csv('your_data.csv')
+
+# Split the data into training and testing sets
+train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
+
+# Separate the comment and department columns
+train_comments = train_df['comment'].values
+train_labels = train_df['department'].values
+test_comments = test_df['comment'].values
+test_labels = test_df['department'].values
+
+# Initialize the tokenizer
+tokenizer = XLNetTokenizer.from_pretrained('xlnet-base-cased')
+
+# Tokenize the training comments
+train_tokenized = tokenizer.batch_encode_plus(
+    train_comments.tolist(),
+    add_special_tokens=True,
+    max_length=128,
+    pad_to_max_length=True,
+    truncation=True,
+    return_attention_mask=True,
+    return_tensors='tf'
+)
+
+# Tokenize the testing comments
+test_tokenized = tokenizer.batch_encode_plus(
+    test_comments.tolist(),
+    add_special_tokens=True,
+    max_length=128,
+    pad_to_max_length=True,
+    truncation=True,
+    return_attention_mask=True,
+    return_tensors='tf'
+)
+
+# Convert tokenized inputs to TensorFlow Dataset format
+train_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(train_tokenized),
+    train_labels
+)).shuffle(100).batch(16)
+
+test_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(test_tokenized),
+    test_labels
+)).batch(16)
+
+
+# Initialize the XLNet model for sequence classification
+model = TFXLNetForSequenceClassification.from_pretrained('xlnet-base-cased', num_labels=num_classes)
+
+# Compile the model
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=2e-5),
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=[tf.keras.metrics.SparseCategoricalAccuracy('accuracy')])
+
+# Train the model
+model.fit(train_dataset, epochs=3, validation_data=test_dataset)
+
+
+def predict_department(comment):
+    tokenized = tokenizer.batch_encode_plus(
+        [comment],
+        add_special_tokens=True,
+        max_length=128,
+        pad_to_max_length=True,
+        truncation=True,
+        return_attention_mask=True,
+        return_tensors='tf'
+    )
+    
+    inputs = dict(tokenized)
+    predictions = model.predict(inputs)
+    predicted_label = np.argmax(predictions[0], axis=-1)[0]
+    
+    return predicted_label
+
+new_comment = "This is a new customer comment."
+predicted_department = predict_department(new_comment)
+print("Predicted Department:", predicted_department)
+
