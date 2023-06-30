@@ -222,3 +222,78 @@ new_comment = "This is a new customer comment."
 predicted_department = predict_department(new_comment)
 print("Predicted Department:", predicted_department)
 
+
+
+
+
+
+
+
+
+import pandas as pd
+from transformers import XLNetTokenizer, TFXLNetForSequenceClassification, XLNetConfig
+import tensorflow as tf
+# Load the dataset
+df = pd.read_csv('your_dataset.csv')
+
+# Preprocess the data
+comments = df['comments'].tolist()
+labels = df['department'].tolist()
+from sklearn.model_selection import train_test_split
+
+# Split the data into training and testing sets
+train_comments, test_comments, train_labels, test_labels = train_test_split(comments, labels, test_size=0.2, random_state=42)
+
+# Load the XLNet tokenizer
+tokenizer = XLNetTokenizer.from_pretrained('xlnet-base-cased')
+
+# Tokenize the comments
+train_encodings = tokenizer(train_comments, truncation=True, padding=True)
+test_encodings = tokenizer(test_comments, truncation=True, padding=True)
+
+# Create TensorFlow datasets
+train_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(train_encodings),
+    train_labels
+))
+test_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(test_encodings),
+    test_labels
+))
+
+
+# Configure the XLNet model
+config = XLNetConfig.from_pretrained('xlnet-base-cased', num_labels=num_classes)
+model = TFXLNetForSequenceClassification.from_pretrained('xlnet-base-cased', config=config)
+
+# Define the optimizer and loss function
+optimizer = tf.keras.optimizers.Adam(learning_rate=2e-5)
+loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+
+# Compile the model
+model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
+
+# Train the model
+model.fit(train_dataset.shuffle(1000).batch(16), epochs=3, batch_size=16)
+
+# Evaluate the model
+_, accuracy = model.evaluate(test_dataset.batch(16))
+print('Test accuracy:', accuracy)
+
+def predict_department(comment):
+    encoding = tokenizer.encode_plus(
+        comment,
+        truncation=True,
+        padding=True,
+        return_tensors='tf'
+    )
+    logits = model.predict(encoding['input_ids'])[0]
+    predicted_class = tf.argmax(logits, axis=1).numpy()[0]
+    predicted_department = label_encoder.inverse_transform([predicted_class])[0]
+    return predicted_department
+
+# Example usage
+new_comment = "This product is amazing!"
+predicted_department = predict_department(new_comment)
+print('Predicted department:', predicted_department)
+
