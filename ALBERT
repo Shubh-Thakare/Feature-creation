@@ -99,3 +99,67 @@ new_encodings = tokenizer(new_comment, truncation=True, padding=True, return_ten
 
 predictions = model.predict(new_encodings)[0]
 predicted_label = predictions.argmax(axis=1)
+
+
+
+
+
+
+
+
+import torch
+
+class TextClassificationDataset(torch.utils.data.Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
+        self.labels = labels
+
+    def __getitem__(self, idx):
+        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
+        item['labels'] = torch.tensor(self.labels[idx])
+        return item
+
+    def __len__(self):
+        return len(self.labels)
+
+train_dataset = TextClassificationDataset(train_encodings, train_labels)
+test_dataset = TextClassificationDataset(test_encodings, test_labels)
+
+from transformers import AlbertForSequenceClassification, Trainer, TrainingArguments
+
+model = AlbertForSequenceClassification.from_pretrained('albert-base-v2', num_labels=num_labels)
+
+training_args = TrainingArguments(
+    output_dir='./results',
+    num_train_epochs=3,
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=64,
+    warmup_steps=500,
+    weight_decay=0.01,
+    logging_dir='./logs',
+    logging_steps=10
+)
+
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=test_dataset
+)
+
+trainer.train()
+
+
+# Load the trained model
+model_path = './results/checkpoint-xxxxx'  # Replace 'xxxxx' with the appropriate checkpoint number
+model = AlbertForSequenceClassification.from_pretrained(model_path)
+
+# Tokenize the new comment
+new_comment = "This is a new customer comment."
+inputs = tokenizer(new_comment, truncation=True, padding=True, return_tensors='pt')
+
+# Make the prediction
+outputs = model(**inputs)
+predicted_label = torch.argmax(outputs.logits, dim=1).item()
+
+
