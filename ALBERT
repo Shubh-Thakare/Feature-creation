@@ -1,0 +1,101 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from transformers import AlbertTokenizer, TFAutoModelForSequenceClassification
+import tensorflow as tf
+# Load the dataframe
+df = pd.read_csv('your_dataframe.csv')
+
+# Split the data into training and testing sets
+train_texts, test_texts, train_labels, test_labels = train_test_split(
+    df['comment'], df['department_label'], test_size=0.2, random_state=42
+)
+
+# Load the ALBERT tokenizer
+tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
+
+# Tokenize the input text
+train_encodings = tokenizer(list(train_texts), truncation=True, padding=True)
+test_encodings = tokenizer(list(test_texts), truncation=True, padding=True)
+
+# Build the ALBERT model for sequence classification
+model = TFAutoModelForSequenceClassification.from_pretrained('albert-base-v2', num_labels=number_of_labels)
+
+# Compile the model
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+
+# Train the model
+history = model.fit(x=train_encodings,
+                    y=train_labels,
+                    validation_data=(test_encodings, test_labels),
+                    batch_size=16,
+                    epochs=5)
+
+# Tokenize the new comment
+new_comment = "This is a new comment."
+new_encoding = tokenizer([new_comment], truncation=True, padding=True)
+
+# Make predictions
+predictions = model.predict(new_encoding['input_ids'])
+
+# Get the predicted department label
+predicted_label = predictions.argmax(axis=1)
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from transformers import AlbertTokenizer, TFAlbertForSequenceClassification, TFTrainer, TFTrainingArguments
+# Assuming your DataFrame is called 'df'
+comments = df['comment'].tolist()
+labels = df['department'].tolist()
+train_comments, val_comments, train_labels, val_labels = train_test_split(comments, labels, test_size=0.2, random_state=42)
+tokenizer = AlbertTokenizer.from_pretrained('albert-base-v2')
+train_encodings = tokenizer(train_comments, truncation=True, padding=True)
+val_encodings = tokenizer(val_comments, truncation=True, padding=True)
+
+train_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(train_encodings),
+    train_labels
+))
+
+val_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(val_encodings),
+    val_labels
+))
+
+model = TFAlbertForSequenceClassification.from_pretrained('albert-base-v2', num_labels=num_departments)
+
+training_args = TFTrainingArguments(
+    output_dir='./results',          # Directory where model predictions and checkpoints will be saved
+    num_train_epochs=3,              # Total number of training epochs
+    per_device_train_batch_size=16,  # Batch size for training
+    per_device_eval_batch_size=64,   # Batch size for evaluation/validation
+    warmup_steps=500,                # Number of warmup steps for learning rate scheduler
+    weight_decay=0.01,               # Strength of weight decay
+    logging_dir='./logs',            # Directory where training logs will be saved
+    logging_steps=100,               # Log training loss and learning rate every `logging_steps` global steps
+    evaluation_strategy='epoch'      # Evaluate the model after each epoch
+)
+
+trainer = TFTrainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=val_dataset
+)
+
+trainer.train()
+
+new_comment = "This is a new comment."
+new_encodings = tokenizer(new_comment, truncation=True, padding=True, return_tensors='tf')
+
+predictions = model.predict(new_encodings)[0]
+predicted_label = predictions.argmax(axis=1)
