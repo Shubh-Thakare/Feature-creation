@@ -1,0 +1,84 @@
+from sklearn.model_selection import train_test_split
+
+# Split the data into training and testing sets
+train_data, test_data = train_test_split(df, test_size=0.2, random_state=42)
+
+from transformers import T5Tokenizer, T5ForConditionalGeneration, T5TrainingArguments, Trainer
+
+# Load the tokenizer and model
+tokenizer = T5Tokenizer.from_pretrained("t5-base")
+model = T5ForConditionalGeneration.from_pretrained("t5-base")
+
+# Set up the training arguments
+training_args = T5TrainingArguments(
+    output_dir="./t5_classification_model",
+    num_train_epochs=3,
+    per_device_train_batch_size=4,
+    per_device_eval_batch_size=4,
+    warmup_steps=500,
+    weight_decay=0.01,
+    logging_dir="./logs",
+)
+
+# Define a function to preprocess the data for T5 model
+def preprocess_function(examples):
+    inputs = tokenizer.batch_encode_plus(
+        examples["comment"],
+        padding="max_length",
+        max_length=256,
+        truncation=True,
+        return_tensors="pt",
+    )
+    labels = tokenizer.batch_encode_plus(
+        examples["department_label"],
+        padding="max_length",
+        max_length=16,
+        truncation=True,
+        return_tensors="pt",
+    )
+    inputs.update(labels)
+    return inputs
+
+# Preprocess the training and testing data
+train_dataset = train_data.rename(columns={"comment": "input_text", "department_label": "target_text"})
+train_dataset = train_dataset.apply(preprocess_function, axis=1)
+eval_dataset = test_data.rename(columns={"comment": "input_text", "department_label": "target_text"})
+eval_dataset = eval_dataset.apply(preprocess_function, axis=1)
+
+# Define the training and evaluation data
+def model_data_loader(dataset):
+    return torch.utils.data.DataLoader(dataset, batch_size=training_args.per_device_train_batch_size)
+
+# Fine-tune the T5 model
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    data_collator=model_data_loader,
+    tokenizer=tokenizer,
+)
+trainer.train()
+
+
+# Load the trained model
+trained_model = T5ForConditionalGeneration.from_pretrained("./t5_classification_model")
+
+# Define a function to predict the department label
+def predict_department(comment):
+    input_text = "classify: " + comment
+    inputs = tokenizer.encode_plus(
+        input_text,
+        padding="max_length",
+        max_length=256,
+        truncation=True,
+        return_tensors="pt",
+    )
+    output = trained_model.generate(inputs["input_ids"])
+    predicted_department = tokenizer.decode(output[0], skip_special_tokens=True)
+    return predicted_department
+
+# Example usage
+new_comment = "This product is great!"
+predicted_label = predict_department(new_comment)
+print(predicted_label)
