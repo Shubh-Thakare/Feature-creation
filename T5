@@ -1,4 +1,4 @@
-from sklearn.model_selection import train_test_split
+model.fitfrom sklearn.model_selection import train_test_split
 
 # Split the data into training and testing sets
 train_data, test_data = train_test_split(df, test_size=0.2, random_state=42)
@@ -82,3 +82,68 @@ def predict_department(comment):
 new_comment = "This product is great!"
 predicted_label = predict_department(new_comment)
 print(predicted_label)
+
+
+
+
+
+
+
+
+
+
+import tensorflow as tf
+import tensorflow_text as text
+from transformers import T5Tokenizer, TFT5ForConditionalGeneration
+
+# Initialize the T5 tokenizer
+tokenizer = T5Tokenizer.from_pretrained('t5-base')
+
+# Tokenize the input text
+train_encodings = tokenizer.batch_encode_plus(
+    train_data['comment'].tolist(),
+    truncation=True,
+    padding=True,
+    return_tensors='tf'
+)
+
+# Create TensorFlow Datasets
+train_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(train_encodings),
+    train_labels
+))
+
+
+# Fine-tune the T5 model
+model = TFT5ForConditionalGeneration.from_pretrained('t5-base')
+model.compile(optimizer='adam', loss=model.compute_loss)
+model.fit(train_dataset.shuffle(1000).batch(16), epochs=3)
+
+# Tokenize the test data
+test_encodings = tokenizer.batch_encode_plus(
+    test_data['comment'].tolist(),
+    truncation=True,
+    padding=True,
+    return_tensors='tf'
+)
+
+# Create TensorFlow Datasets for test data
+test_dataset = tf.data.Dataset.from_tensor_slices((
+    dict(test_encodings),
+    test_labels
+))
+
+# Evaluate the model
+model.evaluate(test_dataset.batch(16))
+
+
+def predict_department(comment):
+    input_ids = tokenizer.encode(comment, return_tensors='tf')
+    outputs = model.generate(input_ids=input_ids, max_length=2)
+    predicted_label = label_encoder.inverse_transform(outputs.numpy().flatten())[0]
+    return predicted_label
+
+# Example usage
+new_comment = "This product is amazing!"
+predicted_department = predict_department(new_comment)
+print("Predicted department:", predicted_department)
