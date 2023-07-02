@@ -1,4 +1,4 @@
-import pandas as pd
+sweeimport pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from transformers import StructBertTokenizer, StructBertForSequenceClassification, AdamW
@@ -96,4 +96,162 @@ def predict_department(comment):
 new_comment = "This is a new comment. Please predict the department."
 predicted_department = predict_department(new_comment)
 print("Predicted Department:", predicted_department)
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AdamW
+import torch
+from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
+# Load the data into a pandas DataFrame
+data = pd.read_csv('your_dataset.csv')
+
+# Split the data into training and testing sets
+train_data, test_data = train_test_split(data, test_size=0.2, random_state=42)
+
+class CustomDataset(Dataset):
+    def __init__(self, comments, labels, tokenizer, max_length):
+        self.comments = comments
+        self.labels = labels
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.comments)
+
+    def __getitem__(self, idx):
+        comment = str(self.comments[idx])
+        label = self.labels[idx]
+
+        encoding = self.tokenizer.encode_plus(
+            comment,
+            add_special_tokens=True,
+            max_length=self.max_length,
+            padding='max_length',
+            truncation=True,
+            return_tensors='pt'
+        )
+
+        return {
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten(),
+            'labels': torch.tensor(label, dtype=torch.long)
+        }
+
+model_name = 'sultan/structbert-base'
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
+
+batch_size = 16
+
+train_dataset = CustomDataset(
+    train_data['comment'],
+    train_data['department'],
+    tokenizer,
+    max_length=128
+)
+
+test_dataset = CustomDataset(
+    test_data['comment'],
+    test_data['department'],
+    tokenizer,
+    max_length=128
+)
+
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=batch_size)
+
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.to(device)
+
+optimizer = AdamW(model.parameters(), lr=2e-5)
+
+num_epochs = 10
+progress_bar = tqdm(range(num_epochs), desc="Training")
+
+for epoch in progress_bar:
+    model.train()
+    train_loss = 0
+
+    for batch in train_loader:
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        labels = batch['labels'].to(device)
+
+        optimizer.zero_grad()
+
+        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+        loss = outputs.loss
+        train_loss += loss.item()
+
+        loss.backward()
+        optimizer.step()
+
+    avg_train_loss = train_loss / len(train_loader)
+
+    progress_bar.set_postfix({'train_loss': avg_train_loss})
+
+
+model.eval()
+test_loss = 0
+correct_predictions = 0
+total_predictions = 0
+
+with torch.no_grad():
+    for batch in test_loader:
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        labels = batch['labels'].to(device)
+
+        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+        loss = outputs.loss
+        logits = outputs.logits
+
+        test_loss += loss.item()
+
+        predicted_labels = torch.argmax(logits, dim=1)
+        correct_predictions += (predicted_labels == labels).sum().item()
+        total_predictions += len(labels)
+
+accuracy = correct_predictions / total_predictions
+avg_test_loss = test_loss / len(test_loader)
+
+print(f'Accuracy: {accuracy:.2f}')
+print(f'Test Loss: {avg_test_loss:.4f}')
+
+
+def predict_department(comment):
+    model.eval()
+    encoded_comment = tokenizer.encode_plus(
+        comment,
+        add_special_tokens=True,
+        max_length=128,
+        padding='max_length',
+        truncation=True,
+        return_tensors='pt'
+    )
+
+    input_ids = encoded_comment['input_ids'].to(device)
+    attention_mask = encoded_comment['attention_mask'].to(device)
+
+    with torch.no_grad():
+        outputs = model(input_ids, attention_mask=attention_mask)
+        logits = outputs.logits
+
+    predicted_label = torch.argmax(logits, dim=1).item()
+    return predicted_label
+
+new_comment = "This is a new comment."
+predicted_department = predict_department(new_comment)
+print(predicted_department)
 
