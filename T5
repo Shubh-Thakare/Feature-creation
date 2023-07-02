@@ -147,3 +147,110 @@ def predict_department(comment):
 new_comment = "This product is amazing!"
 predicted_department = predict_department(new_comment)
 print("Predicted department:", predicted_department)
+
+
+
+
+
+
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from transformers import T5Tokenizer, T5ForConditionalGeneration, T5Config
+# Load the dataset into a DataFrame
+df = pd.read_csv('your_dataset.csv')
+
+# Preprocess the dataset if needed
+
+# Split the dataset into training and testing sets
+train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
+# Initialize the T5 tokenizer
+tokenizer = T5Tokenizer.from_pretrained('t5-base')
+
+# Tokenize the comments
+train_encodings = tokenizer.batch_encode_plus(
+    train_df['comment'].tolist(),
+    padding=True,
+    truncation=True,
+    max_length=512,
+    return_attention_mask=True,
+    return_tensors='pt'
+)
+
+test_encodings = tokenizer.batch_encode_plus(
+    test_df['comment'].tolist(),
+    padding=True,
+    truncation=True,
+    max_length=512,
+    return_attention_mask=True,
+    return_tensors='pt'
+)
+
+# Initialize the T5 model
+model = T5ForConditionalGeneration.from_pretrained('t5-base')
+
+# Configure the model
+model_config = T5Config.from_pretrained('t5-base')
+model_config.num_labels = len(df['department'].unique())  # Set the number of output labels
+
+# Fine-tune the model
+model.resize_token_embeddings(len(tokenizer))
+model.train()
+
+# Train the model
+train_inputs = {
+    'input_ids': train_encodings['input_ids'],
+    'attention_mask': train_encodings['attention_mask'],
+    'labels': tokenizer.batch_encode_plus(
+        train_df['department'].tolist(),
+        padding=True,
+        truncation=True,
+        max_length=512,
+        return_tensors='pt'
+    )['input_ids']
+}
+
+model.forward(**train_inputs)
+
+
+# Evaluate the model
+test_inputs = {
+    'input_ids': test_encodings['input_ids'],
+    'attention_mask': test_encodings['attention_mask'],
+    'labels': tokenizer.batch_encode_plus(
+        test_df['department'].tolist(),
+        padding=True,
+        truncation=True,
+        max_length=512,
+        return_tensors='pt'
+    )['input_ids']
+}
+
+model.eval()
+model.forward(**test_inputs)
+
+
+# Preprocess the new comment
+new_comment = "This is a new comment to predict the department."
+new_encodings = tokenizer.batch_encode_plus(
+    [new_comment],
+    padding=True,
+    truncation=True,
+    max_length=512,
+    return_attention_mask=True,
+    return_tensors='pt'
+)
+
+# Predict the department for the new comment
+model.eval()
+with torch.no_grad():
+    outputs = model.generate(
+        input_ids=new_encodings['input_ids'],
+        attention_mask=new_encodings['attention_mask'],
+        max_length=2  # Assuming the number of departments is 2
+    )
+
+# Decode the predicted output
+predicted_department = tokenizer.decode(outputs[0])
+print("Predicted Department:", predicted_department)
