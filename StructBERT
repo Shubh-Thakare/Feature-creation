@@ -1,0 +1,99 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from transformers import StructBertTokenizer, StructBertForSequenceClassification, AdamW
+import torch
+
+# Assuming you have a dataframe named 'df' with 'comment' and 'department' columns
+
+# Split the data into train and test sets
+train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
+
+# Convert department labels to integers
+labels = train_df['department'].unique().tolist()
+label2id = {label: idx for idx, label in enumerate(labels)}
+id2label = {idx: label for idx, label in enumerate(labels)}
+train_df['label'] = train_df['department'].map(label2id)
+test_df['label'] = test_df['department'].map(label2id)
+
+# Convert the data into lists
+train_comments = train_df['comment'].tolist()
+train_labels = train_df['label'].tolist()
+test_comments = test_df['comment'].tolist()
+test_labels = test_df['label'].tolist()
+
+# Load the StructBERT tokenizer
+tokenizer = StructBertTokenizer.from_pretrained('hfl/chinese-structbert-wwm-ext')
+
+# Tokenize the comments
+train_encodings = tokenizer(train_comments, truncation=True, padding=True)
+test_encodings = tokenizer(test_comments, truncation=True, padding=True)
+
+# Create PyTorch datasets
+train_dataset = torch.utils.data.TensorDataset(
+    torch.tensor(train_encodings['input_ids']),
+    torch.tensor(train_encodings['attention_mask']),
+    torch.tensor(train_labels)
+)
+test_dataset = torch.utils.data.TensorDataset(
+    torch.tensor(test_encodings['input_ids']),
+    torch.tensor(test_encodings['attention_mask']),
+    torch.tensor(test_labels)
+)
+
+model = StructBertForSequenceClassification.from_pretrained('hfl/chinese-structbert-wwm-ext', num_labels=len(labels))
+
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+model.to(device)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True)
+optimizer = AdamW(model.parameters(), lr=1e-5)
+
+model.train()
+for epoch in range(5):  # You can adjust the number of epochs
+    for batch in train_loader:
+        input_ids, attention_mask, labels = batch
+        input_ids = input_ids.to(device)
+        attention_mask = attention_mask.to(device)
+        labels = labels.to(device)
+        optimizer.zero_grad()
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+
+model.eval()
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=16, shuffle=False)
+predictions = []
+with torch.no_grad():
+    for batch in test_loader:
+        input_ids, attention_mask, labels = batch
+        input_ids = input_ids.to(device)
+        attention_mask = attention_mask.to(device)
+        labels = labels.to(device)
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+        logits = outputs.logits
+        predicted_labels = logits.argmax(dim=-1)
+        predictions.extend(predicted_labels.cpu().numpy())
+
+true_labels = test_labels
+predicted_labels = [id2label[label] for label in predictions]
+
+print(classification_report(true_labels, predicted_labels))
+
+
+def predict_department(comment):
+    model.eval()
+    encoding = tokenizer([comment], truncation=True, padding=True)
+    input_ids = torch.tensor(encoding['input_ids']).to(device)
+    attention_mask = torch.tensor(encoding['attention_mask']).to(device)
+    with torch.no_grad():
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+        logits = outputs.logits
+        predicted_label = logits.argmax(dim=-1).item()
+    predicted_department = id2label[predicted_label]
+    return predicted_department
+
+new_comment = "This is a new comment. Please predict the department."
+predicted_department = predict_department(new_comment)
+print("Predicted Department:", predicted_department)
+
